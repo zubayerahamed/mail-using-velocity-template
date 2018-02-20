@@ -105,7 +105,7 @@ public class MailController {
 		body.setFileName("attachment.csv");
 		multipart.addBodyPart(body);
 
-		message.setContent(multipart, "text/html");
+		message.setContent(multipart);
 
 		// send mail
 		Transport.send(message);
