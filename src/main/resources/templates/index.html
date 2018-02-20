@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+		<meta charset="UTF-8"/>
+		<title>Insert title here</title>
+	</head>
+	<body>
+		<span th:if="${sm}" th:text="${sm}"></span>
+		<a th:unless="${sm}" th:href="@{/mail}">Send Mail</a>
+	</body>
+</html>

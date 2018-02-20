@@ -1,0 +1,13 @@
+<html>
+	<head>
+		<title></title>
+	</head>
+	<body>
+		This is a test mail body Mr. <b>${fname} ${lname}</b>.<br/>
+		You may put HTML/text content here.
+		<br/>
+		<br/>
+		With best wishes,<br/>
+		${proprietor}
+	</body>
+</html>
