@@ -3,8 +3,12 @@ package com.coderslab.controller;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 import javax.activation.DataHandler;
@@ -39,6 +43,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @RequestMapping("/")
 public class MailController {
 
+	private static final String EML_FILE = "/home/zubayer/A-WORKSPACE/savedmailfile/mail.eml";
+
 	@Autowired
 	Environment env;
 
@@ -48,14 +54,13 @@ public class MailController {
 		return "index";
 	}
 
-	@GetMapping("/mail")
-	public String sendMail(RedirectAttributes redirect)
-			throws AddressException, MessagingException, FileNotFoundException, IOException {
-		String to = "zubayer.ahamed@metafour.com";
-		String from = "cyclingbd007@gmail.com";
-
+	private Session getMailSession() {
 		Properties props = System.getProperties();
-		props.load(new FileInputStream(new File("src/main/resources/mail-settings.properties")));
+		try {
+			props.load(new FileInputStream(new File("src/main/resources/mail-settings.properties")));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 		Session session = Session.getDefaultInstance(props, new Authenticator() {
 			@Override
@@ -64,46 +69,126 @@ public class MailController {
 			}
 		});
 
-		// Creating default MIME message object
+		return session;
+	}
+
+	@GetMapping("/mail2")
+	public String sendMailFromEMLFile(RedirectAttributes redirect) throws FileNotFoundException, MessagingException {
+		String to = "zubayer.ahamed@metafour.com";
+		String from = "zubayer.ahamed@metafour.com";
+
+		// Mail session
+		Session session = getMailSession();
+		// Mime message
+		MimeMessage message = getMimeMessage(session);
+
+		File emlFile = new File(EML_FILE);
+		InputStream source = new FileInputStream(emlFile);
+		BodyPart htmlPart = new MimeBodyPart(source);
+
+		// Add Attachment 
+		Multipart multipart = new MimeMultipart();
+		multipart.addBodyPart(htmlPart);
+		for(Map.Entry<String, String> attachment : getFiles().entrySet()){
+			BodyPart mailBody = new MimeBodyPart();
+			DataSource dSource = new FileDataSource(attachment.getValue());
+			mailBody.setDataHandler(new DataHandler(dSource));
+			mailBody.setFileName(attachment.getKey());
+			multipart.addBodyPart(mailBody);
+		}
+
+		message.setContent(multipart);
+
+		// send mail
+		Transport.send(message);
+
+		redirect.addFlashAttribute("sm", "Email send successfull");
+
+		return "redirect:/";
+	}
+
+	private Map<String, String> getContextData(){
+		Map<String, String> map = new HashMap<>();
+		map.put("fname", "Zubayer");
+		map.put("lname", "Ahamed");
+		return map;
+	}
+
+	private Map<String, String> getFiles(){
+		Map<String, String> map = new HashMap<>();
+		map.put("attachment.csv", "src/main/resources/static/mail-attachment-template.csv");
+		map.put("attachment.pdf", "src/main/resources/static/zubayer_cv.pdf");
+		return map;
+	}
+
+	private MimeMessage getMimeMessage(Session session) throws AddressException, MessagingException {
+		String from = "zubayer.ahamed@metafour.com";
+		String to = "zubayer.ahamed@metafour.com";
+		String cc = "";
+		String bcc = "";
+		String replyTo = "";
+
 		MimeMessage message = new MimeMessage(session);
 		message.setFrom(new InternetAddress(from));
 		message.addRecipient(Message.RecipientType.TO, new InternetAddress(to));
+		if(!cc.isEmpty()) message.setRecipient(Message.RecipientType.CC, new InternetAddress(cc));
+		if(!bcc.isEmpty()) message.setRecipient(Message.RecipientType.BCC, new InternetAddress(bcc));
+		if(!replyTo.isEmpty()) message.setReplyTo(InternetAddress.parse(replyTo));
 		message.setSubject("Test mail through simple java API");
+		
+		return message;
+	}
 
-		BodyPart body = new MimeBodyPart();
+	@GetMapping("/mail")
+	public String sendMail(RedirectAttributes redirect) throws AddressException, MessagingException, FileNotFoundException, IOException {
 
-		// velocity stuff.
-		// Initialize velocity
-		VelocityEngine ve = new VelocityEngine();
-		ve.init();
+		// Mail session
+		Session session = getMailSession();
 
-		// get the template
-		Template t = ve.getTemplate("src/main/resources/static/mail-body-template.vm");
+		// Creating default MIME message object
+		MimeMessage message = getMimeMessage(session);
+
+
+		// Mail Body
+		BodyPart mailBody = new MimeBodyPart();
+
+		// Velocity engine
+		VelocityEngine velocityEngine = new VelocityEngine();
+		velocityEngine.init();
 
 		// create context and add data
 		VelocityContext context = new VelocityContext();
-		context.put("fname", "Zubayer");
-		context.put("lname", "Ahamed");
-		context.put("proprietor", "coderslab.com");
+		getContextData().entrySet().stream().forEach(d -> {
+			context.put(d.getKey(), d.getValue());
+		});
 
 		/* now render the template into a StringWriter */
-		StringWriter out = new StringWriter();
-		t.merge(context, out);
+		// Get velocity template
+		Template velocityTemplate = velocityEngine.getTemplate("src/main/resources/static/mail-body-template.vm");
+		StringWriter bodyWriter = new StringWriter();
+		velocityTemplate.merge(context, bodyWriter);
 
-		// velocity stuff end
+		// Save mail file before send
+		File file = new File(EML_FILE);
+		if(!file.exists()) {
+			file.createNewFile();
+		}
+		message.setContent(bodyWriter.toString(), "text/html;charset=UTF-8");
+		message.writeTo(new FileOutputStream(file));
 
-		body.setContent(out.toString(), "text/html");
+		// Set template data to mail body
+		mailBody.setContent(bodyWriter.toString(), "text/html");
 
+		// Add Attachment 
 		Multipart multipart = new MimeMultipart();
-		multipart.addBodyPart(body);
-
-		body = new MimeBodyPart();
-
-		String filename = "src/main/resources/static/mail-attachment-template.csv";
-		DataSource source = new FileDataSource(filename);
-		body.setDataHandler(new DataHandler(source));
-		body.setFileName("attachment.csv");
-		multipart.addBodyPart(body);
+		multipart.addBodyPart(mailBody);
+		for(Map.Entry<String, String> attachment : getFiles().entrySet()){
+			BodyPart multipartBody = new MimeBodyPart();
+			DataSource source = new FileDataSource(attachment.getValue());
+			multipartBody.setDataHandler(new DataHandler(source));
+			multipartBody.setFileName(attachment.getKey());
+			multipart.addBodyPart(multipartBody);
+		}
 
 		message.setContent(multipart);
 

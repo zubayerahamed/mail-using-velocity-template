@@ -1,13 +1,14 @@
 <html>
 	<head>
-		<title></title>
+		<title>Send Mail from Local</title>
 	</head>
 	<body>
-		This is a test mail body Mr. <b>${fname} ${lname}</b>.<br/>
-		You may put HTML/text content here.
+		Hi,<br/>
 		<br/>
+		This is a test mail.<br/>
+		Please check the attachment file.<br/>
 		<br/>
-		With best wishes,<br/>
-		${proprietor}
+		Regards,<br/>
+		${fname} ${lname}
 	</body>
 </html>
