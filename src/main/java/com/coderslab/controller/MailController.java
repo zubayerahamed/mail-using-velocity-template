@@ -122,7 +122,7 @@ public class MailController {
 	}
 
 	private MimeMessage getMimeMessage(Session session) throws AddressException, MessagingException {
-		String from = "zubayer.ahamed@metafour.com";
+		String from = "cyclingbd007@gmail.com";
 		String to = "zubayer.ahamed@metafour.com";
 		String cc = "";
 		String bcc = "";
@@ -168,14 +168,6 @@ public class MailController {
 		StringWriter bodyWriter = new StringWriter();
 		velocityTemplate.merge(context, bodyWriter);
 
-		// Save mail file before send
-		File file = new File(EML_FILE);
-		if(!file.exists()) {
-			file.createNewFile();
-		}
-		message.setContent(bodyWriter.toString(), "text/html;charset=UTF-8");
-		message.writeTo(new FileOutputStream(file));
-
 		// Set template data to mail body
 		mailBody.setContent(bodyWriter.toString(), "text/html");
 
@@ -191,6 +183,14 @@ public class MailController {
 		}
 
 		message.setContent(multipart);
+
+		// Save mail file before send
+		File file = new File(EML_FILE);
+		if(!file.exists()) {
+			file.createNewFile();
+		}
+//		message.setContent(bodyWriter.toString(), "text/html;charset=UTF-8");
+		message.writeTo(new FileOutputStream(file));
 
 		// send mail
 		Transport.send(message);
