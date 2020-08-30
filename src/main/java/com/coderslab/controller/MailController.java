@@ -1,11 +1,13 @@
 package com.coderslab.controller;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
@@ -117,7 +119,7 @@ public class MailController {
 	private Map<String, String> getFiles(){
 		Map<String, String> map = new HashMap<>();
 		map.put("attachment.csv", "src/main/resources/static/mail-attachment-template.csv");
-		map.put("attachment.pdf", "src/main/resources/static/zubayer_cv.pdf");
+		map.put("attachment.pdf", "src/main/resources/static/in_DUMMY088990_20200825-025718.pdf");
 		return map;
 	}
 
@@ -162,11 +164,14 @@ public class MailController {
 			context.put(d.getKey(), d.getValue());
 		});
 
+
+		InputStream isr = new BufferedInputStream(new FileInputStream(new File("src/main/resources/static/standard_invoice_email_template.html")));
 		/* now render the template into a StringWriter */
 		// Get velocity template
-		Template velocityTemplate = velocityEngine.getTemplate("src/main/resources/static/mail-body-template.vm");
+		//Template velocityTemplate = velocityEngine.getTemplate("src/main/resources/static/standard_invoice_email_template.html");
 		StringWriter bodyWriter = new StringWriter();
-		velocityTemplate.merge(context, bodyWriter);
+		//velocityTemplate.merge(context, bodyWriter);
+		velocityEngine.evaluate(context, bodyWriter, "", isr);
 
 		// Set template data to mail body
 		mailBody.setContent(bodyWriter.toString(), "text/html");
